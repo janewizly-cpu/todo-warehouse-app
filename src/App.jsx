@@ -16,7 +16,7 @@ import { supabase } from "./supabaseClient";
 
 const RACKS = ["A", "B", "V", "G"];
 const COLUMNS = [1, 2, 3, 4, 5, 6];
-const ROWS = [1, 2, 3, 4];
+const ROWS = [1, 2, 3, 4, 5];
 
 function buildCells() {
   const cells = [];
@@ -28,7 +28,7 @@ function buildCells() {
           rack,
           column,
           row,
-          title: `Стеллаж ${rack} / Колонка ${column} / Ряд ${row}`,
+          title: `Стеллаж ${rack} / Колонка ${column} / ${row === 5 ? "Верхний ряд" : `Ряд ${row}`}`,
         });
       });
     });
@@ -609,7 +609,7 @@ export default function App() {
                                 <div className="font-semibold">{cellId}</div>
                                 <Badge variant="outline" className="bg-white/70">{codes.length}</Badge>
                               </div>
-                              <div className="mt-2 text-xs">Ряд {row}</div>
+                              <div className="mt-2 text-xs">{row === 5 ? "Верхний ряд" : `Ряд ${row}`}</div>
                               <div className="mt-1 text-xs">Остаток: {totalQty}</div>
                             </motion.button>
                           );
