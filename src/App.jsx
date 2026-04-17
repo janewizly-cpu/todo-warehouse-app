@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Download,
   Image as ImageIcon,
+  X,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 
@@ -245,18 +246,18 @@ function RackPlanCard({ rack, imageData, onFileSelect, onClear, onOpen, uploadin
       <CardContent className="grid gap-3">
         <div className="overflow-hidden rounded-2xl border bg-slate-50">
           {imageData ? (
-                <button
-                  type="button"
-                  onClick={() => onOpen(imageData)}
-                  className="block w-full cursor-zoom-in"
-                >
-                  <img
-                    src={imageData}
-                    alt={`План стеллажа ${rack}`}
-                    className="h-48 w-full object-contain bg-white"
-                  />
-                </button>
-              ) : (
+            <button
+              type="button"
+              onClick={() => onOpen(imageData)}
+              className="block w-full cursor-zoom-in"
+            >
+              <img
+                src={imageData}
+                alt={`План стеллажа ${rack}`}
+                className="h-48 w-full object-contain bg-white"
+              />
+            </button>
+          ) : (
             <div className="flex h-48 items-center justify-center px-4 text-center text-sm text-slate-500">
               Картинка для стеллажа {rack} пока не загружена
             </div>
@@ -279,7 +280,6 @@ function RackPlanCard({ rack, imageData, onFileSelect, onClear, onOpen, uploadin
 }
 
 export default function App() {
-  const [previewPlan, setPreviewPlan] = useState(null);
   const [manualMap, setManualMap] = useState({});
   const [stocks, setStocks] = useState([]);
   const [rackPlans, setRackPlans] = useState({});
@@ -290,6 +290,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingRack, setUploadingRack] = useState("");
+  const [previewPlan, setPreviewPlan] = useState(null);
+  const [isCellModalOpen, setIsCellModalOpen] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -412,6 +414,15 @@ export default function App() {
     });
     return rows;
   }, [search, manualMap, stockMap]);
+
+  function openCellModal(cellId) {
+    setSelectedCell(cellId);
+    setIsCellModalOpen(true);
+  }
+
+  function closeCellModal() {
+    setIsCellModalOpen(false);
+  }
 
   async function saveCellCodes() {
     setSaving(true);
@@ -637,7 +648,7 @@ export default function App() {
                   {searchResults.map((item) => (
                     <button
                       key={`${item.cellId}-${item.code}`}
-                      onClick={() => setSelectedCell(item.cellId)}
+                      onClick={() => openCellModal(item.cellId)}
                       className="rounded-xl border p-3 text-left transition hover:bg-slate-50"
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -659,7 +670,7 @@ export default function App() {
             <div className="grid min-w-max gap-4 md:min-w-0 md:grid-cols-2 xl:grid-cols-4">
               {RACKS.map((rack) => (
                 <RackPlanCard
-                 key={rack}
+                  key={rack}
                   rack={rack}
                   imageData={rackPlans[rack]}
                   onFileSelect={handleRackPlanUpload}
@@ -672,125 +683,62 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Схема склада 4 × 6 × 5</CardTitle>
-              <CardDescription>На телефоне схема прокручивается горизонтально. Пятый ряд — это верхний ряд над колонкой.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-6">
-              {RACKS.map((rack) => (
-                <div key={rack} className="grid gap-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-lg font-semibold">Стеллаж {rack}</div>
-                    {rackPlans[rack] && <Badge variant="outline">План загружен</Badge>}
-                  </div>
-                  <div className="overflow-x-auto pb-1">
-                    <div className="grid min-w-[760px] grid-cols-6 gap-2 md:min-w-0">
-                      {COLUMNS.map((column) => (
-                        <div key={`${rack}-${column}`} className="grid gap-2">
-                          <div className="text-center text-sm font-medium text-slate-500">Колонка {column}</div>
-                          {ROWS.map((row) => {
-                            const cellId = `${rack}${column}-${row}`;
-                            const codes = manualMap[cellId] || [];
-                            const items = codes.map((code) => {
-                              const stock = stockMap.get(code);
-                              return { code, found: !!stock, qty: stock?.qty ?? 0 };
-                            });
-                            const status = getCellStatus(items);
-                            const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
-                            return (
-                              <motion.button
-                                whileHover={{ y: -1 }}
-                                whileTap={{ scale: 0.99 }}
-                                key={cellId}
-                                onClick={() => setSelectedCell(cellId)}
-                                className={[
-                                  "min-h-[92px] rounded-2xl border p-3 text-left shadow-sm transition",
-                                  statusClasses(status),
-                                  selectedCell === cellId ? "ring-2 ring-slate-900" : "",
-                                ].join(" ")}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="font-semibold">{cellId}</div>
-                                  <Badge variant="outline" className="bg-white/70">{codes.length}</Badge>
-                                </div>
-                                <div className="mt-2 text-xs">{row === 5 ? "Верхний ряд" : `Ряд ${row}`}</div>
-                                <div className="mt-1 text-xs">Остаток: {totalQty}</div>
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Схема склада 4 × 6 × 5</CardTitle>
+            <CardDescription>Пятый ряд — это верхний ряд над колонкой. Нажмите на ячейку, чтобы открыть ее содержимое крупно.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6">
+            {RACKS.map((rack) => (
+              <div key={rack} className="grid gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-lg font-semibold">Стеллаж {rack}</div>
+                  {rackPlans[rack] && <Badge variant="outline">План загружен</Badge>}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <div className="overflow-x-auto pb-1">
+                  <div className="grid min-w-[760px] grid-cols-6 gap-2 md:min-w-0">
+                    {COLUMNS.map((column) => (
+                      <div key={`${rack}-${column}`} className="grid gap-2">
+                        <div className="text-center text-sm font-medium text-slate-500">Колонка {column}</div>
+                        {ROWS.map((row) => {
+                          const cellId = `${rack}${column}-${row}`;
+                          const codes = manualMap[cellId] || [];
+                          const items = codes.map((code) => {
+                            const stock = stockMap.get(code);
+                            return { code, found: !!stock, qty: stock?.qty ?? 0 };
+                          });
+                          const status = getCellStatus(items);
+                          const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
 
-          <Card className="xl:sticky xl:top-4 xl:self-start">
-            <CardHeader>
-              <CardTitle>{selectedCell}</CardTitle>
-              <CardDescription>
-                {allCells.find((c) => c.cell_id === selectedCell)?.title || "Выбранная ячейка"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <div className="text-sm font-semibold">Коды в ячейке</div>
-                <Textarea
-                  value={cellEditor}
-                  onChange={(e) => setCellEditor(e.target.value)}
-                  className="min-h-[170px] rounded-2xl"
-                  placeholder={"Введите коды по одному в строке\nНапример:\n11211\n11218\n16651"}
-                />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button className="rounded-xl" onClick={saveCellCodes} disabled={saving || loading}>
-                    <Save className="h-4 w-4" /> {saving ? "Сохраняю..." : "Сохранить коды"}
-                  </Button>
-                  <Button variant="outline" className="rounded-xl" onClick={clearCellCodes} disabled={saving || loading}>
-                    <Trash2 className="h-4 w-4" /> Очистить ячейку
-                  </Button>
-                </div>
-                <div className="text-xs text-slate-500">
-                  Разделители допустимы любые: новая строка, пробел, запятая или точка с запятой.
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid gap-3 grid-cols-2">
-                <StatCard label="Кодов" value={String(cellItems.length)} />
-                <StatCard label="Общий остаток" value={String(totalQtyInCell)} />
-              </div>
-
-              <div className="grid gap-2">
-                <div className="text-sm font-semibold">Найденные товары</div>
-                <ScrollArea className="h-[280px] rounded-2xl border bg-white p-3">
-                  <div className="grid gap-2">
-                    {cellItems.length === 0 && <div className="text-sm text-slate-500">В ячейке пока нет кодов.</div>}
-                    {cellItems.map((item) => (
-                      <div
-                        key={item.code}
-                        className={[
-                          "rounded-xl border p-3",
-                          item.found ? "border-slate-200" : "border-red-200 bg-red-50",
-                        ].join(" ")}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="font-medium">{item.code}</div>
-                          <Badge variant={item.found ? "secondary" : "destructive"}>Остаток: {item.qty}</Badge>
-                        </div>
-                        <div className="mt-1 text-sm text-slate-700">{item.name}</div>
+                          return (
+                            <motion.button
+                              whileHover={{ y: -1 }}
+                              whileTap={{ scale: 0.99 }}
+                              key={cellId}
+                              onClick={() => openCellModal(cellId)}
+                              className={[
+                                "min-h-[92px] rounded-2xl border p-3 text-left shadow-sm transition",
+                                statusClasses(status),
+                                "hover:ring-2 hover:ring-slate-300",
+                              ].join(" ")}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="font-semibold">{cellId}</div>
+                                <Badge variant="outline" className="bg-white/70">{codes.length}</Badge>
+                              </div>
+                              <div className="mt-2 text-xs">{row === 5 ? "Верхний ряд" : `Ряд ${row}`}</div>
+                              <div className="mt-1 text-xs">Остаток: {totalQty}</div>
+                            </motion.button>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <Card>
@@ -839,6 +787,105 @@ export default function App() {
           </Card>
         </div>
       </div>
+
+      {isCellModalOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 p-2 sm:p-4"
+          onClick={closeCellModal}
+        >
+          <div className="flex min-h-full items-end justify-center sm:items-center">
+            <div
+              className="h-[92vh] w-full max-w-5xl overflow-hidden rounded-t-3xl rounded-b-none bg-white shadow-2xl sm:h-[88vh] sm:rounded-3xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-6">
+                <div>
+                  <div className="text-xl font-semibold text-slate-900">{selectedCell}</div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    {allCells.find((c) => c.cell_id === selectedCell)?.title || "Выбранная ячейка"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeCellModal}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="h-[calc(92vh-88px)] overflow-auto px-4 py-4 sm:h-[calc(88vh-88px)] sm:px-6 sm:py-5">
+                <div className="grid gap-4">
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                    <StatCard label="Кодов" value={String(cellItems.length)} />
+                    <StatCard label="Общий остаток" value={String(totalQtyInCell)} />
+                    <StatCard
+                      label="Найдено"
+                      value={String(cellItems.filter((item) => item.found).length)}
+                    />
+                    <StatCard
+                      label="Ошибок"
+                      value={String(cellItems.filter((item) => !item.found).length)}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="text-sm font-semibold">Содержимое ячейки</div>
+                    <ScrollArea className="h-[42vh] rounded-2xl border bg-white p-3 sm:h-[44vh]">
+                      <div className="grid gap-3">
+                        {cellItems.length === 0 && (
+                          <div className="text-sm text-slate-500">В ячейке пока нет кодов.</div>
+                        )}
+                        {cellItems.map((item) => (
+                          <div
+                            key={item.code}
+                            className={[
+                              "rounded-2xl border p-4",
+                              item.found ? "border-slate-200 bg-white" : "border-red-200 bg-red-50",
+                            ].join(" ")}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="text-base font-semibold">{item.code}</div>
+                              <Badge variant={item.found ? "secondary" : "destructive"}>
+                                Остаток: {item.qty}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 text-sm leading-6 text-slate-700">{item.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid gap-2">
+                    <div className="text-sm font-semibold">Коды в ячейке</div>
+                    <Textarea
+                      value={cellEditor}
+                      onChange={(e) => setCellEditor(e.target.value)}
+                      className="min-h-[170px] rounded-2xl"
+                      placeholder={"Введите коды по одному в строке\nНапример:\n11211\n11218\n16651"}
+                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button className="rounded-xl" onClick={saveCellCodes} disabled={saving || loading}>
+                        <Save className="h-4 w-4" /> {saving ? "Сохраняю..." : "Сохранить коды"}
+                      </Button>
+                      <Button variant="outline" className="rounded-xl" onClick={clearCellCodes} disabled={saving || loading}>
+                        <Trash2 className="h-4 w-4" /> Очистить ячейку
+                      </Button>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Разделители допустимы любые: новая строка, пробел, запятая или точка с запятой.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {previewPlan && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
