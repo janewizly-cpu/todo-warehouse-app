@@ -30,7 +30,9 @@ function buildCells() {
           rack,
           column,
           row,
-          title: `Стеллаж ${rack} / Колонка ${column} / ${row === 5 ? "Верхний ряд" : `Ряд ${row}`}`,
+          title: `Стеллаж ${rack} / Колонка ${column} / ${
+            row === 5 ? "Верхний ряд" : `Ряд ${row}`
+          }`,
         });
       });
     });
@@ -44,20 +46,41 @@ function normalizeCode(value) {
   return String(value ?? "").trim();
 }
 
+function getRackFromCellId(cellId) {
+  return String(cellId || "").trim().charAt(0) || "A";
+}
+
 function parseQty(row) {
-  const candidates = [row["Остаток"], row["Доступно"], row["Количество"], row.qty, row.Qty, row.QTY];
+  const candidates = [
+    row["Остаток"],
+    row["Доступно"],
+    row["Количество"],
+    row.qty,
+    row.Qty,
+    row.QTY,
+  ];
+
   for (const candidate of candidates) {
-    const normalized = String(candidate ?? "").replace(/\s/g, "").replace(",", ".");
+    const normalized = String(candidate ?? "")
+      .replace(/\s/g, "")
+      .replace(",", ".");
     if (normalized === "") continue;
     const num = Number(normalized);
     if (Number.isFinite(num)) return num;
   }
+
   return 0;
 }
 
 function normalizeStockRow(row) {
-  const code = normalizeCode(row["Код"] ?? row.code ?? row.Code ?? row.CODE).replace(/\.0$/, "");
-  const name = String(row["Наименование"] ?? row.name ?? row.Name ?? "").trim();
+  const code = normalizeCode(
+    row["Код"] ?? row.code ?? row.Code ?? row.CODE
+  ).replace(/\.0$/, "");
+
+  const name = String(
+    row["Наименование"] ?? row.name ?? row.Name ?? ""
+  ).trim();
+
   return {
     code,
     name,
@@ -121,6 +144,7 @@ function getCellStatus(items) {
   if (!items.length) return "empty";
   const found = items.filter((item) => item.found).length;
   const positive = items.filter((item) => item.found && item.qty > 0).length;
+
   if (found === 0) return "error";
   if (positive === items.length) return "ok";
   if (positive === 0) return "zero";
@@ -143,7 +167,13 @@ function statusClasses(status) {
 }
 
 function Card({ className = "", children }) {
-  return <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>;
+  return (
+    <div
+      className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 function CardHeader({ children, className = "" }) {
@@ -155,18 +185,31 @@ function CardContent({ children, className = "" }) {
 }
 
 function CardTitle({ children, className = "" }) {
-  return <h2 className={`text-lg md:text-xl font-semibold text-slate-900 ${className}`}>{children}</h2>;
+  return (
+    <h2
+      className={`text-lg md:text-xl font-semibold text-slate-900 ${className}`}
+    >
+      {children}
+    </h2>
+  );
 }
 
 function CardDescription({ children, className = "" }) {
   return <p className={`mt-1 text-sm text-slate-500 ${className}`}>{children}</p>;
 }
 
-function Button({ children, className = "", variant = "solid", type = "button", ...props }) {
+function Button({
+  children,
+  className = "",
+  variant = "solid",
+  type = "button",
+  ...props
+}) {
   const styles =
     variant === "outline"
       ? "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
       : "bg-slate-900 text-white hover:bg-slate-800";
+
   return (
     <button
       type={type}
@@ -203,7 +246,14 @@ function Badge({ children, variant = "secondary", className = "" }) {
       : variant === "outline"
         ? "border border-slate-300 bg-white text-slate-700"
         : "border border-slate-200 bg-slate-100 text-slate-700";
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${styles} ${className}`}>{children}</span>;
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${styles} ${className}`}
+    >
+      {children}
+    </span>
+  );
 }
 
 function ScrollArea({ children, className = "" }) {
@@ -236,13 +286,16 @@ function StatCard({ label, value }) {
 
 function RackPlanCard({ rack, imageData, onFileSelect, onClear, onOpen, uploading }) {
   return (
-    <Card className="min-w-[280px] md:min-w-0">
+    <Card className="xl:sticky xl:top-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <ImageIcon className="h-4 w-4" /> План стеллажа {rack}
         </CardTitle>
-        <CardDescription>Можно загрузить картинку с вашей схемой раскладки по колонкам.</CardDescription>
+        <CardDescription>
+          Можно загрузить картинку с вашей схемой раскладки по колонкам.
+        </CardDescription>
       </CardHeader>
+
       <CardContent className="grid gap-3">
         <div className="overflow-hidden rounded-2xl border bg-slate-50">
           {imageData ? (
@@ -254,25 +307,69 @@ function RackPlanCard({ rack, imageData, onFileSelect, onClear, onOpen, uploadin
               <img
                 src={imageData}
                 alt={`План стеллажа ${rack}`}
-                className="h-48 w-full object-contain bg-white"
+                className="h-56 w-full object-contain bg-white md:h-72"
               />
             </button>
           ) : (
-            <div className="flex h-48 items-center justify-center px-4 text-center text-sm text-slate-500">
+            <div className="flex h-56 items-center justify-center px-4 text-center text-sm text-slate-500 md:h-72">
               Картинка для стеллажа {rack} пока не загружена
             </div>
           )}
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
           <label className="w-full">
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => onFileSelect(rack, e)} />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => onFileSelect(rack, e)}
+            />
             <span className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
               <Upload className="h-4 w-4" /> {uploading ? "Загружаю..." : "Загрузить"}
             </span>
           </label>
-          <Button variant="outline" onClick={() => onClear(rack)} disabled={!imageData || uploading}>
+
+          <Button
+            variant="outline"
+            onClick={() => onClear(rack)}
+            disabled={!imageData || uploading}
+          >
             <Trash2 className="h-4 w-4" /> Очистить
           </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RackSwitch({ selectedRack, setSelectedRack }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Стеллажи</CardTitle>
+        <CardDescription>Нажмите на нужный стеллаж.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {RACKS.map((rack) => {
+            const active = selectedRack === rack;
+            return (
+              <button
+                key={rack}
+                type="button"
+                onClick={() => setSelectedRack(rack)}
+                className={[
+                  "min-h-12 rounded-xl border px-4 py-3 text-sm font-semibold transition",
+                  active
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                ].join(" ")}
+              >
+                Стеллаж {rack}
+              </button>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -284,6 +381,7 @@ export default function App() {
   const [stocks, setStocks] = useState([]);
   const [rackPlans, setRackPlans] = useState({});
   const [selectedCell, setSelectedCell] = useState("A1-1");
+  const [selectedRack, setSelectedRack] = useState("A");
   const [cellEditor, setCellEditor] = useState("");
   const [search, setSearch] = useState("");
   const [lastSync, setLastSync] = useState("Нет загрузок");
@@ -314,6 +412,7 @@ export default function App() {
     if (cellCodesError) {
       alert(`Ошибка загрузки cell_codes: ${cellCodesError.message}`);
     }
+
     if (stockItemsError) {
       alert(`Ошибка загрузки stock_items: ${stockItemsError.message}`);
     }
@@ -331,7 +430,13 @@ export default function App() {
 
     setManualMap(grouped);
     setRackPlans(planMap);
-    setStocks((stockItems || []).map((item) => ({ code: String(item.code), name: item.name, qty: Number(item.qty || 0) })));
+    setStocks(
+      (stockItems || []).map((item) => ({
+        code: String(item.code),
+        name: item.name,
+        qty: Number(item.qty || 0),
+      }))
+    );
     setLastSync(`Данные из Supabase: ${new Date().toLocaleString()}`);
     setLoading(false);
   }
@@ -366,8 +471,15 @@ export default function App() {
     });
   }, [manualMap, selectedCell, stockMap]);
 
-  const totalQtyInCell = useMemo(() => cellItems.reduce((sum, item) => sum + item.qty, 0), [cellItems]);
-  const totalMappedCodes = useMemo(() => Object.values(manualMap).reduce((sum, arr) => sum + arr.length, 0), [manualMap]);
+  const totalQtyInCell = useMemo(
+    () => cellItems.reduce((sum, item) => sum + item.qty, 0),
+    [cellItems]
+  );
+
+  const totalMappedCodes = useMemo(
+    () => Object.values(manualMap).reduce((sum, arr) => sum + arr.length, 0),
+    [manualMap]
+  );
 
   const unmatchedCodes = useMemo(() => {
     const rows = [];
@@ -391,16 +503,21 @@ export default function App() {
     return stocks.filter((item) => item.code && !mappedCodesSet.has(item.code));
   }, [stocks, mappedCodesSet]);
 
-  const totalStockQty = useMemo(() => stocks.reduce((sum, item) => sum + item.qty, 0), [stocks]);
+  const totalStockQty = useMemo(
+    () => stocks.reduce((sum, item) => sum + item.qty, 0),
+    [stocks]
+  );
 
   const searchResults = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return [];
+
     const rows = [];
     Object.entries(manualMap).forEach(([cellId, codes]) => {
       codes.forEach((code) => {
         const stock = stockMap.get(code);
         const haystack = [code, cellId, stock?.name || ""].join(" ").toLowerCase();
+
         if (haystack.includes(q)) {
           rows.push({
             cellId,
@@ -412,11 +529,13 @@ export default function App() {
         }
       });
     });
+
     return rows;
   }, [search, manualMap, stockMap]);
 
   function openCellModal(cellId) {
     setSelectedCell(cellId);
+    setSelectedRack(getRackFromCellId(cellId));
     setIsCellModalOpen(true);
   }
 
@@ -426,6 +545,7 @@ export default function App() {
 
   async function saveCellCodes() {
     setSaving(true);
+
     const codes = Array.from(
       new Set(
         cellEditor
@@ -435,7 +555,11 @@ export default function App() {
       )
     );
 
-    const { error: deleteError } = await supabase.from("cell_codes").delete().eq("cell_id", selectedCell);
+    const { error: deleteError } = await supabase
+      .from("cell_codes")
+      .delete()
+      .eq("cell_id", selectedCell);
+
     if (deleteError) {
       alert(`Ошибка удаления старых кодов: ${deleteError.message}`);
       setSaving(false);
@@ -445,6 +569,7 @@ export default function App() {
     if (codes.length > 0) {
       const rows = codes.map((code) => ({ cell_id: selectedCell, code }));
       const { error: insertError } = await supabase.from("cell_codes").insert(rows);
+
       if (insertError) {
         alert(`Ошибка сохранения кодов: ${insertError.message}`);
         setSaving(false);
@@ -458,12 +583,18 @@ export default function App() {
 
   async function clearCellCodes() {
     setSaving(true);
-    const { error } = await supabase.from("cell_codes").delete().eq("cell_id", selectedCell);
+
+    const { error } = await supabase
+      .from("cell_codes")
+      .delete()
+      .eq("cell_id", selectedCell);
+
     if (error) {
       alert(`Ошибка очистки ячейки: ${error.message}`);
       setSaving(false);
       return;
     }
+
     setCellEditor("");
     setManualMap((prev) => ({ ...prev, [selectedCell]: [] }));
     setSaving(false);
@@ -491,11 +622,16 @@ export default function App() {
   }
 
   async function clearRackPlan(rack) {
-    const { error } = await supabase.from("rack_plans").delete().eq("rack_code", rack);
+    const { error } = await supabase
+      .from("rack_plans")
+      .delete()
+      .eq("rack_code", rack);
+
     if (error) {
       alert(`Ошибка удаления картинки: ${error.message}`);
       return;
     }
+
     setRackPlans((prev) => ({ ...prev, [rack]: "" }));
   }
 
@@ -531,7 +667,11 @@ export default function App() {
 
       const merged = Array.from(mergedMap.values());
 
-      const { error: deleteError } = await supabase.from("stock_items").delete().gte("id", 0);
+      const { error: deleteError } = await supabase
+        .from("stock_items")
+        .delete()
+        .gte("id", 0);
+
       if (deleteError) {
         alert(`Ошибка очистки stock_items: ${deleteError.message}`);
         return;
@@ -568,6 +708,7 @@ export default function App() {
     Object.entries(manualMap).forEach(([cellId, codes]) => {
       codes.forEach((code) => rows.push({ cell_id: cellId, code }));
     });
+
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "map");
@@ -594,8 +735,11 @@ export default function App() {
                     <Upload className="h-4 w-4" /> Загрузить остатки
                   </div>
                   <Input type="file" accept=".xls,.xlsx,.csv" onChange={handleStockFile} />
-                  <div className="text-xs text-slate-500">Берем колонки: Код, Наименование, Остаток или Доступно</div>
+                  <div className="text-xs text-slate-500">
+                    Берем колонки: Код, Наименование, Остаток или Доступно
+                  </div>
                 </label>
+
                 <div className="grid gap-2 rounded-2xl border bg-white p-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Download className="h-4 w-4" /> Экспорт карты
@@ -603,8 +747,11 @@ export default function App() {
                   <Button variant="outline" className="justify-start rounded-xl" onClick={exportMap}>
                     Скачать ячейки и коды
                   </Button>
-                  <div className="text-xs text-slate-500">Файл Excel с колонками cell_id и code</div>
+                  <div className="text-xs text-slate-500">
+                    Файл Excel с колонками cell_id и code
+                  </div>
                 </div>
+
                 <div className="grid gap-2 rounded-2xl border bg-white p-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <RefreshCw className="h-4 w-4" /> Сервис
@@ -641,10 +788,17 @@ export default function App() {
                   placeholder="Например: 11211 или A1-1"
                 />
               </div>
+
               <ScrollArea className="h-[220px] rounded-2xl border bg-white p-3">
                 <div className="grid gap-2">
-                  {!search && <div className="text-sm text-slate-500">Введите запрос для поиска.</div>}
-                  {search && searchResults.length === 0 && <div className="text-sm text-slate-500">Ничего не найдено.</div>}
+                  {!search && (
+                    <div className="text-sm text-slate-500">Введите запрос для поиска.</div>
+                  )}
+
+                  {search && searchResults.length === 0 && (
+                    <div className="text-sm text-slate-500">Ничего не найдено.</div>
+                  )}
+
                   {searchResults.map((item) => (
                     <button
                       key={`${item.cellId}-${item.code}`}
@@ -665,97 +819,103 @@ export default function App() {
           </Card>
         </div>
 
-        <div className="grid gap-4">
-          <div className="overflow-x-auto">
-            <div className="grid min-w-max gap-4 md:min-w-0 md:grid-cols-2 xl:grid-cols-4">
-              {RACKS.map((rack) => (
-                <RackPlanCard
-                  key={rack}
-                  rack={rack}
-                  imageData={rackPlans[rack]}
-                  onFileSelect={handleRackPlanUpload}
-                  onClear={clearRackPlan}
-                  onOpen={setPreviewPlan}
-                  uploading={uploadingRack === rack}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <RackSwitch selectedRack={selectedRack} setSelectedRack={setSelectedRack} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Схема склада 4 × 6 × 5</CardTitle>
-            <CardDescription>Пятый ряд — это верхний ряд над колонкой. Нажмите на ячейку, чтобы открыть ее содержимое крупно.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            {RACKS.map((rack) => (
-              <div key={rack} className="grid gap-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-lg font-semibold">Стеллаж {rack}</div>
-                  {rackPlans[rack] && <Badge variant="outline">План загружен</Badge>}
-                </div>
-                <div className="overflow-x-auto pb-1">
-                  <div className="grid min-w-[760px] grid-cols-6 gap-2 md:min-w-0">
-                    {COLUMNS.map((column) => (
-                      <div key={`${rack}-${column}`} className="grid gap-2">
-                        <div className="text-center text-sm font-medium text-slate-500">Колонка {column}</div>
-                        {ROWS.map((row) => {
-                          const cellId = `${rack}${column}-${row}`;
-                          const codes = manualMap[cellId] || [];
-                          const items = codes.map((code) => {
-                            const stock = stockMap.get(code);
-                            return { code, found: !!stock, qty: stock?.qty ?? 0 };
-                          });
-                          const status = getCellStatus(items);
-                          const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
-
-                          return (
-                            <motion.button
-                              whileHover={{ y: -1 }}
-                              whileTap={{ scale: 0.99 }}
-                              key={cellId}
-                              onClick={() => openCellModal(cellId)}
-                              className={[
-                                "min-h-[92px] rounded-2xl border p-3 text-left shadow-sm transition",
-                                statusClasses(status),
-                                "hover:ring-2 hover:ring-slate-300",
-                              ].join(" ")}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="font-semibold">{cellId}</div>
-                                <Badge variant="outline" className="bg-white/70">{codes.length}</Badge>
-                              </div>
-                              <div className="mt-2 text-xs">{row === 5 ? "Верхний ряд" : `Ряд ${row}`}</div>
-                              <div className="mt-1 text-xs">Остаток: {totalQty}</div>
-                            </motion.button>
-                          );
-                        })}
+        <div className="grid gap-4 xl:grid-cols-[1fr_340px] items-start">
+          <Card>
+            <CardHeader>
+              <CardTitle>Схема стеллажа {selectedRack}</CardTitle>
+              <CardDescription>
+                Пятый ряд — это верхний ряд над колонкой. Нажмите на ячейку, чтобы открыть ее содержимое крупно.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto pb-1">
+                <div className="grid min-w-[760px] grid-cols-6 gap-2 md:min-w-0">
+                  {COLUMNS.map((column) => (
+                    <div key={`${selectedRack}-${column}`} className="grid gap-2">
+                      <div className="text-center text-sm font-medium text-slate-500">
+                        Колонка {column}
                       </div>
-                    ))}
-                  </div>
+
+                      {ROWS.map((row) => {
+                        const cellId = `${selectedRack}${column}-${row}`;
+                        const codes = manualMap[cellId] || [];
+                        const items = codes.map((code) => {
+                          const stock = stockMap.get(code);
+                          return { code, found: !!stock, qty: stock?.qty ?? 0 };
+                        });
+                        const status = getCellStatus(items);
+                        const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+
+                        return (
+                          <motion.button
+                            whileHover={{ y: -1 }}
+                            whileTap={{ scale: 0.99 }}
+                            key={cellId}
+                            onClick={() => openCellModal(cellId)}
+                            className={[
+                              "min-h-[92px] rounded-2xl border p-3 text-left shadow-sm transition",
+                              statusClasses(status),
+                              "hover:ring-2 hover:ring-slate-300",
+                            ].join(" ")}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="font-semibold">{cellId}</div>
+                              <Badge variant="outline" className="bg-white/70">
+                                {codes.length}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 text-xs">
+                              {row === 5 ? "Верхний ряд" : `Ряд ${row}`}
+                            </div>
+                            <div className="mt-1 text-xs">Остаток: {totalQty}</div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <RackPlanCard
+            rack={selectedRack}
+            imageData={rackPlans[selectedRack]}
+            onFileSelect={handleRackPlanUpload}
+            onClear={clearRackPlan}
+            onOpen={setPreviewPlan}
+            uploading={uploadingRack === selectedRack}
+          />
+        </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Коды без совпадения в выгрузке</CardTitle>
-              <CardDescription>Эти коды вручную внесены в ячейки, но в текущем файле остатков не найдены.</CardDescription>
+              <CardDescription>
+                Эти коды вручную внесены в ячейки, но в текущем файле остатков не найдены.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-2">
-                {unmatchedCodes.length === 0 && <div className="text-sm text-slate-500">Ошибок нет.</div>}
+                {unmatchedCodes.length === 0 && (
+                  <div className="text-sm text-slate-500">Ошибок нет.</div>
+                )}
+
                 {unmatchedCodes.map((item) => (
-                  <div key={`${item.cellId}-${item.code}`} className="rounded-xl border border-red-200 bg-red-50 p-3">
+                  <div
+                    key={`${item.cellId}-${item.code}`}
+                    className="rounded-xl border border-red-200 bg-red-50 p-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div className="font-medium">{item.code}</div>
                       <Badge variant="destructive">{item.cellId}</Badge>
                     </div>
-                    <div className="mt-1 text-sm text-slate-700">Нет строки с таким кодом в загруженной выгрузке</div>
+                    <div className="mt-1 text-sm text-slate-700">
+                      Нет строки с таким кодом в загруженной выгрузке
+                    </div>
                   </div>
                 ))}
               </div>
@@ -765,14 +925,24 @@ export default function App() {
           <Card>
             <CardHeader>
               <CardTitle>Товары в остатках без ячейки</CardTitle>
-              <CardDescription>Эти товары есть в загруженной выгрузке, но вы еще не назначили им ячейку.</CardDescription>
+              <CardDescription>
+                Эти товары есть в загруженной выгрузке, но вы еще не назначили им ячейку.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[320px] rounded-2xl border bg-white p-3">
                 <div className="grid gap-2">
-                  {stocksWithoutCell.length === 0 && <div className="text-sm text-slate-500">Все товары из выгрузки распределены по ячейкам.</div>}
+                  {stocksWithoutCell.length === 0 && (
+                    <div className="text-sm text-slate-500">
+                      Все товары из выгрузки распределены по ячейкам.
+                    </div>
+                  )}
+
                   {stocksWithoutCell.map((item) => (
-                    <div key={item.code} className="rounded-xl border border-yellow-200 bg-yellow-50 p-3">
+                    <div
+                      key={item.code}
+                      className="rounded-xl border border-yellow-200 bg-yellow-50 p-3"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-medium">{item.code}</div>
                         <Badge variant="outline">Остаток: {item.qty}</Badge>
@@ -789,10 +959,7 @@ export default function App() {
       </div>
 
       {isCellModalOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 p-2 sm:p-4"
-          onClick={closeCellModal}
-        >
+        <div className="fixed inset-0 z-40 bg-black/50 p-2 sm:p-4" onClick={closeCellModal}>
           <div className="flex min-h-full items-end justify-center sm:items-center">
             <div
               className="h-[92vh] w-full max-w-5xl overflow-hidden rounded-t-3xl rounded-b-none bg-white shadow-2xl sm:h-[88vh] sm:rounded-3xl"
@@ -805,6 +972,7 @@ export default function App() {
                     {allCells.find((c) => c.cell_id === selectedCell)?.title || "Выбранная ячейка"}
                   </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={closeCellModal}
@@ -836,6 +1004,7 @@ export default function App() {
                         {cellItems.length === 0 && (
                           <div className="text-sm text-slate-500">В ячейке пока нет кодов.</div>
                         )}
+
                         {cellItems.map((item) => (
                           <div
                             key={item.code}
@@ -871,7 +1040,12 @@ export default function App() {
                       <Button className="rounded-xl" onClick={saveCellCodes} disabled={saving || loading}>
                         <Save className="h-4 w-4" /> {saving ? "Сохраняю..." : "Сохранить коды"}
                       </Button>
-                      <Button variant="outline" className="rounded-xl" onClick={clearCellCodes} disabled={saving || loading}>
+                      <Button
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={clearCellCodes}
+                        disabled={saving || loading}
+                      >
                         <Trash2 className="h-4 w-4" /> Очистить ячейку
                       </Button>
                     </div>
